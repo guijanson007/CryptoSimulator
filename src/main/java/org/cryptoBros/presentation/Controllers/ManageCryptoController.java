@@ -1,0 +1,124 @@
+package org.cryptoBros.presentation.Controllers;
+
+import org.cryptoBros.business.Crypto;
+import org.cryptoBros.business.Liseners.BalanceListener;
+import org.cryptoBros.presentation.Enum.ButtonEnumeration;
+import org.cryptoBros.presentation.Enum.PagesName;
+import org.cryptoBros.presentation.ListenersPersistence.Navigation;
+import org.cryptoBros.presentation.Views.BaseView;
+import org.cryptoBros.presentation.Views.ManageCryptoView;
+
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.util.List;
+
+/**
+ * Controls the manage crypto view for admin operations.
+ */
+public class ManageCryptoController implements ActionListener, BalanceListener {
+
+    private final ManageCryptoView manageCryptoView;
+	private final Navigation navigation;
+	private final AdminController adminController;
+
+    /**
+     * Creates a new ManageCryptoController.
+     *
+     * @param navigation       the navigation handler for page transitions
+     * @param adminController  the admin controller for crypto management
+     * @param isAdmin          whether the current user is an admin
+     */
+    public ManageCryptoController(Navigation navigation, AdminController adminController, boolean isAdmin) {
+        this.manageCryptoView = new ManageCryptoView();
+		this.navigation = navigation;
+		this.adminController = adminController;
+		manageCryptoView.setTypeUser(isAdmin);
+        manageCryptoView.setActions(this);
+        manageCryptoView.setDeleteCallback(this::handleDeleteCrypto);
+		manageCryptoView.setEditCallback(this::editCrypto);
+    }
+
+	private void editCrypto(int row) {
+		String cryptoName = manageCryptoView.getCryptoNameAtRow(row);
+		String newName = manageCryptoView.getCryptoName();
+
+		if (newName == null || newName.isBlank()) return;
+
+		adminController.changeCryptoName(cryptoName, newName);
+		refreshCryptoData();
+	}
+
+	private void refreshCryptoData() {
+		List<Crypto> cryptos = adminController.getAllCryptos();
+		Object[][] data = new Object[cryptos.size()][3];
+		for (int i = 0; i < cryptos.size(); i++) {
+			data[i] = new Object[]{ cryptos.get(i).getName(), "", "" };
+		}
+		manageCryptoView.setCryptoData(data);
+	}
+
+	/**
+	 * Refreshes the crypto data and returns the manage crypto view.
+	 *
+	 * @return the manage crypto view
+	 */
+	public BaseView getView() {
+        refreshCryptoData();
+		return manageCryptoView;
+    }
+
+    private void handleDeleteCrypto(int row) {
+        String cryptoName = manageCryptoView.getCryptoNameAtRow(row);
+        int confirm = JOptionPane.showConfirmDialog(null,
+                "Delete " + cryptoName + "? All holders will be refunded automatically.",
+                "Confirm Delete", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            adminController.deleteCrypto(cryptoName);
+            refreshCryptoData();
+        }
+    }
+
+    private void handleAddCrypto() {
+        JFileChooser fileChooser = manageCryptoView.createFileChooser();
+        int result = fileChooser.showOpenDialog(null);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            adminController.addCryptoFromFile(selectedFile);
+            refreshCryptoData();
+        }
+    }
+
+	/**
+	 * Handles user actions from the manage crypto view, including adding a new
+	 * cryptocurrency, navigating to other pages, and logging out as admin.
+	 *
+	 * @param e the action event triggered by the user
+	 */
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		ButtonEnumeration buttonEnumeration = ButtonEnumeration.valueOf(e.getActionCommand());
+		String command = e.getActionCommand();
+		if (ButtonEnumeration.ADD_CRYPTO.name().equals(command)) {
+			handleAddCrypto();
+			return;
+		}
+		switch (buttonEnumeration) {
+			case SETTINGS -> navigation.navigate(PagesName.SETTING);
+			case HOME -> navigation.navigate(PagesName.CRYPTO_MARKET);
+			case PORTFOLIO -> navigation.navigate(PagesName.PORTFOLIO);
+			case LOGOUT -> adminController.adminLogout();
+		}
+	}
+
+    /**
+     * Updates the displayed balance on the manage crypto view when it changes.
+     *
+     * @param balance the new balance value
+     */
+    @Override
+    public void balanceChanged(double balance) {
+        manageCryptoView.updateBalance(balance);
+    }
+}

@@ -1,0 +1,126 @@
+package org.cryptoBros.presentation.Controllers;
+
+import org.cryptoBros.presentation.Enum.PagesName;
+import org.cryptoBros.presentation.ListenersPersistence.Navigation;
+
+/**
+ * Coordinates navigation between all application views.
+ */
+public class NavigatorController implements Navigation {
+
+    private final CryptoMarketController cryptoMarketController;
+    private final FrameController frameController;
+    private final SettingController settingController;
+    private final PortfolioController portfolioController;
+	private final ManageCryptoController manageCryptoController;
+    private final UserController userController;
+	private final ProfileController profileController;
+    private final CryptoDetailController cryptoDetailController;
+	private final boolean isAdmin;
+
+    /**
+     * Creates a new NavigatorController and initializes all page controllers.
+     *
+     * @param frameController  the frame controller for display operations
+     * @param userController   the user controller for user actions
+     * @param adminController  the admin controller for admin actions
+     * @param isAdmin          whether the current user is an admin
+     */
+    public NavigatorController(FrameController frameController, UserController userController, AdminController adminController, boolean isAdmin) {
+        this.frameController = frameController;
+        this.userController = userController;
+        this.manageCryptoController = new ManageCryptoController(this, adminController, isAdmin);
+        this.cryptoMarketController = new CryptoMarketController(userController,this, isAdmin);
+		this.profileController = new ProfileController(userController, this, isAdmin);
+        this.settingController = new SettingController(userController, this, isAdmin);
+        this.portfolioController = new PortfolioController(userController, this);
+        this.cryptoDetailController = new CryptoDetailController(userController, this, isAdmin);
+		this.isAdmin = isAdmin;
+
+        userController.initCrypto();
+        userController.registerCryptoListener(cryptoMarketController);
+        userController.getAllCrypto();
+        if (!isAdmin) {
+            userController.registerBalanceListener(cryptoMarketController);
+            userController.pushCurrentBalance(cryptoMarketController);
+        }
+    }
+
+
+    public void stratNavigation () {
+        frameController.displayContent(cryptoMarketController.getView());
+        userController.displayCryptoNotification();
+    }
+
+    /**
+     * Navigates to the specified page by removing existing crypto listeners,
+     * stopping the graph worker, and displaying the target view with the
+     * appropriate listener registrations.
+     *
+     * @param name the target page identifier
+     */
+    @Override
+    public void navigate(PagesName name) {
+        userController.removeCryptoListener();
+        cryptoDetailController.stop();
+
+        switch (name) {
+            case SETTING -> {
+                if (!isAdmin) {
+                    userController.registerBalanceListener(settingController);
+                    userController.pushCurrentBalance(settingController);
+                }
+                frameController.displayContent(settingController.getView());
+            }
+            case CRYPTO_MARKET ->  {
+                userController.registerCryptoListener(cryptoMarketController);
+                cryptoMarketController.clearTable();
+                userController.getAllCrypto();
+                if (!isAdmin) {
+                    userController.registerBalanceListener(cryptoMarketController);
+                    userController.pushCurrentBalance(cryptoMarketController);
+                }
+                frameController.displayContent(cryptoMarketController.getView());
+            }
+            case PORTFOLIO ->  {
+                userController.registerCryptoListener(portfolioController);
+                if (!isAdmin) {
+                    userController.registerBalanceListener(portfolioController);
+                    userController.pushCurrentBalance(portfolioController);
+                }
+                frameController.displayContent(portfolioController.getView());
+            }
+			case MANAGE_CRYPTO ->  {
+				frameController.displayContent(manageCryptoController.getView());
+			}
+			case PROFILE ->  {
+				frameController.displayContent(profileController.getView());
+			}
+            case CRYPTO_DETAIL -> {
+                if (!isAdmin) {
+                    userController.registerBalanceListener(portfolioController);
+                    userController.pushCurrentBalance(portfolioController);
+                }
+                frameController.displayContent(cryptoDetailController.getView());
+            }
+        }
+    }
+
+    /**
+     * Navigates to the crypto detail view for a specific cryptocurrency,
+     * registering crypto and balance listeners and loading the detail content.
+     *
+     * @param type the ticker symbol of the cryptocurrency to display
+     */
+    public void navigateToCryptoDetail(String type) {
+        userController.removeCryptoListener();
+        cryptoDetailController.stop();
+        userController.registerCryptoListener(cryptoDetailController);
+        cryptoDetailController.displayContent(type);
+        if (!isAdmin) {
+            userController.registerBalanceListener(cryptoDetailController);
+            userController.pushCurrentBalance(cryptoDetailController);
+        }
+        frameController.displayContent(cryptoDetailController.getView());
+    }
+}

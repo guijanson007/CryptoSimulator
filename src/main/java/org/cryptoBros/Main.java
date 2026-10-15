@@ -1,17 +1,31 @@
 package org.cryptoBros;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Main {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!\n");
+import org.cryptoBros.presentation.Controllers.FrameController;
+import org.cryptoBros.presentation.Controllers.InitialController;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
-        }
+import javax.swing.*;
+
+/**
+ * Application entry point for the CryptoBros trading platform.
+ */
+public class Main {
+
+    /**
+     * Creates a new Main instance.
+     */
+    public Main() {}
+
+    /**
+     * Launches the application on the Swing event dispatch thread.
+     *
+     * @param args command-line arguments
+     */
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            FrameController frameController = new FrameController();
+            InitialController initialController = new InitialController(frameController);
+            initialController.startProgram();
+            frameController.startFrame();
+        });
     }
 }
