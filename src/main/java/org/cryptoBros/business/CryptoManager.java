@@ -25,6 +25,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class CryptoManager implements BotListener {
 
+    private static final double MAX_VOLATILITY = 10.0;
+
     private CryptoListener cryptoListener;
     private CryptoPersistence cryptoPersistence;
     private final Map<String, Bot> activeBots;
@@ -63,17 +65,30 @@ public class CryptoManager implements BotListener {
      * @param newCrypto the crypto to be created
      * @throws DbConnectionException if the db connection fails at any point during this process
      * @throws BotGenerationException if the bot could not be generated
-     * @throws CryptoNotAddedException if the crypto could not be added to the db
+     * @throws CryptoNotAddedException if the crypto is invalid or could not be added to the db
      */
     public void createCrypto(Crypto newCrypto)
             throws DbConnectionException, BotGenerationException, CryptoNotAddedException {
-
+        validate(newCrypto);
         long botUserId = atomicDb.createCryptoWithBot(newCrypto);
 
         // DB succeeded: start in-memory bot
         Bot bot = new Bot(botUserId, newCrypto.getSymbol(), newCrypto.getVolatility(), this);
         activeBots.put(newCrypto.getSymbol(), bot);
         bot.start();
+    }
+
+    private static void validate(Crypto crypto) throws CryptoNotAddedException {
+        if (crypto.getSymbol() == null || crypto.getSymbol().isBlank()
+                || crypto.getName() == null || crypto.getName().isBlank()) {
+            throw new CryptoNotAddedException("A crypto needs a symbol and a name.");
+        }
+        if (!(crypto.getCurrentPrice() > 0) || !(crypto.getInitialPrice() > 0)) {
+            throw new CryptoNotAddedException("Prices must be greater than zero.");
+        }
+        if (!(crypto.getVolatility() > 0 && crypto.getVolatility() <= MAX_VOLATILITY)) {
+            throw new CryptoNotAddedException("Volatility must be greater than 0 and at most " + MAX_VOLATILITY + ".");
+        }
     }
 
     /**

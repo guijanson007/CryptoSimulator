@@ -514,3 +514,19 @@ match no user (identity ids start at 1), and login always sets it first, so no q
 **Choice:** A. A matching DAO-level check in `UserPortfolioSQL.sellCrypto` was not added: no approved test covers it.
 
 **Objections:** None.
+
+## D37 — Bug #8: coin validation in createCrypto (2026-10-16)
+
+**Decision:** Fix or report-only for bug #8, confirmed by CryptoManagerTest #61–64 (every invalid coin reached the DB layer).
+
+**Options considered:**
+- A. Fix: `CryptoManager.createCrypto` rejects missing/blank symbol or name, prices ≤ 0, and volatility outside (0, 10]
+  with `CryptoNotAddedException` before any DB call; checks written as `!(x > 0)` so NaN is also rejected.
+- B. Report only (`@Disabled`).
+
+**Choice:** A. Already handled in the UI (`AdminController.addCryptoFromFile` catches `CryptoNotAddedException`).
+Known limits: JSON import stays partial on the first invalid coin; seeding (`loadInitialData`) bypasses this
+validation; invalid coins already stored still affect bot loading (to be decided with the Bot guard, #49, D27's
+throwing backstop does not fix that half).
+
+**Objections:** None.
