@@ -602,3 +602,65 @@ wrong type), which escapes `AccountManager.logInNormalUser` and is not caught by
 Trade-off: a corrupted hash for a real user also reads as "incorrect password", with no log line.
 
 **Objections:** None.
+
+## D43 — Local test instructions (Q42) (2026-10-16)
+
+**Decision:** How contributors learn to run the tests.
+
+**Options considered:** A. "Running Tests" section in README.md. B. Wrapper script `run-tests.sh`. C. Nothing.
+
+**Choice:** A, plus a separate fix of the README's broken run instructions (`java -cp` without dependencies →
+`./mvnw compile exec:java`). The documented single-class commands were run before committing.
+
+**Objections:** None.
+
+## D44 — Where CI runs (Q43) (2026-10-16)
+
+**Decision:** CI platform and location, given the repo is a public fork of `iAlexX11/Project_S2_OOPD`
+(team PRs historically merged upstream; GitHub runs a PR's checks from the target repo).
+
+**Options considered:** A. GitHub Actions in the fork only. B. The same, later proposed upstream. C. No CI.
+
+**Choice:** A. Guards work in the fork, not upstream team merges. Actions must be enabled once in the fork's Actions tab.
+Upstream (B) to be decided separately after a green run.
+
+**Objections:** None.
+
+## D45 — Time limits (Q44) (2026-10-16)
+
+**Decision:** When a run counts as hung.
+
+**Options considered:** A. Job timeout only. B. Job timeout + per-test JUnit timeout. C. GitHub default (6 h).
+
+**Choice:** B. `timeout-minutes: 15` (expected 2–4 min, unmeasured) and `junit.jupiter.execution.timeout.default = 30 s`
+(slowest test ~1.1 s). Assumed, not yet verified: the container start in `IntegrationTestBase`'s static
+initializer is not counted against the per-test timeout.
+
+**Objections:** None.
+
+## D46 — Flaky test policy (Q45) (2026-10-16)
+
+**Decision:** What happens to intermittently failing tests.
+
+**Options considered:** A. Zero tolerance, no retries; quarantine confirmed flakes with a dated `@Disabled("FLAKY: …")`,
+log, then fix or delete. B. Automatic single re-run (`rerunFailingTestsCount=1`). C. Manual job re-runs.
+
+**Choice:** A. No flakiness observed in ~30 full runs this session; known candidates: #47 (relies on synchronous
+scheduler thread start) and container startup on CI.
+
+**Objections:** None.
+
+## D47 — What blocks a merge (Q46) (2026-10-16)
+
+**Decision:** Enforcement of CI results.
+
+**Options considered:** A. Required status check `verify` on the fork's `main` (branch protection, set manually).
+B. Advisory only. C. Also a coverage threshold (rejected in D17).
+
+**Choice:** A. Requires merging `testing` → `main` through a PR. Configured by the user in GitHub settings; not
+possible from this session (`gh` not authenticated).
+
+**Action versions:** pinned to exact releases at least two weeks old (checkout v7.0.1, setup-java v6.0.1,
+upload-artifact v7.0.1) instead of floating major tags.
+
+**Objections:** None.
