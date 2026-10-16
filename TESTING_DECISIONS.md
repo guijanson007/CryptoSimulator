@@ -447,3 +447,30 @@ the existing DROP statements. SchemaIT runs in a throwaway database (`schema_che
 database is unaffected either way.
 
 **Objections:** None.
+
+## D32 — Covering bug #10 (2026-10-16)
+
+**Decision:** How "no user logged in" is tested, given suspected bug #10 (`UserManager.currentUserId` has no
+initializer, so a fresh manager starts at 0, not -1, and the `== -1` guards don't fire until `clearCurrentUser()`).
+
+**Options considered:**
+- A. #11/#14 call `clearCurrentUser()` and test the guard; new case #65 asserts a fresh manager reports -1.
+- B. #11/#14 use a fresh manager (bug #10 reported twice; guard logic untested).
+- C. Both states inside #11/#14 via `assertAll`.
+
+**Choice:** A. Test list grows to 65 cases.
+
+**Objections:** None.
+
+## D33 — Exception type for rejected deposits (Q29, bug #7) (2026-10-16)
+
+**Decision:** Which exception `UserManager.addBalance` must throw for zero/negative amounts (case #15).
+
+**Options considered:**
+- A. `IllegalArgumentException`: no new class; unchecked, so `UserController.addBalance` would let it escape to the EDT with no user message.
+- B. New checked `InvalidAmountException` (persistence/Exceptions), matching the project's checked domain-exception convention; the compiler forces UI handling; the fix needs a 2-line catch in `UserController`.
+- C. Reuse `InsufficientBalanceException`: wrong meaning shown to the user.
+
+**Choice:** B. The class is added in its own commit before the test so the test compiles.
+
+**Objections:** None.
