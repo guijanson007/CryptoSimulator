@@ -44,6 +44,12 @@ public abstract class IntegrationTestBase {
         return DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
     }
 
+    /** Opens a connection to another database in the same container, e.g. one a test creates for itself. */
+    protected static Connection connect(String database) throws SQLException {
+        String url = "jdbc:postgresql://" + POSTGRES.getHost() + ":" + POSTGRES.getMappedPort(5432) + "/" + database;
+        return DriverManager.getConnection(url, POSTGRES.getUsername(), POSTGRES.getPassword());
+    }
+
     /** Runs one or more SQL statements with no parameters (the driver handles $$-quoted function bodies). */
     protected static void execute(String sql) throws SQLException {
         try (Connection conn = connect(); Statement st = conn.createStatement()) {
