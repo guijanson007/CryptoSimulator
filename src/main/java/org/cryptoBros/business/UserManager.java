@@ -15,7 +15,7 @@ import java.util.concurrent.ScheduledExecutorService;
  * Manages user state, balance operations, and periodic balance increases.
  */
 public class UserManager {
-	private int currentUserId; // -1;
+	private int currentUserId = -1;
 	private final UserPersistence userPersistence;
     private final AtomicPersistence atomicDb;
 

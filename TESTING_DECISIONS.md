@@ -474,3 +474,17 @@ initializer, so a fresh manager starts at 0, not -1, and the `== -1` guards don'
 **Choice:** B. The class is added in its own commit before the test so the test compiles.
 
 **Objections:** None.
+
+## D34 — Bug #10: initial user id (2026-10-16)
+
+**Decision:** Fix or report-only for bug #10, confirmed by UserManagerTest #65 (`expected: <-1> but was: <0>`).
+
+**Options considered:**
+- A. Fix: initialize `currentUserId = -1` (the existing comment's intent).
+- B. Report only (`@Disabled`).
+
+**Choice:** A. All 11 reads of the current user id in `UserController` pass it to DB queries where 0 and -1 both
+match no user (identity ids start at 1), and login always sets it first, so no query result changes; the
+`== -1` guards now also hold before the first login.
+
+**Objections:** None.
