@@ -34,14 +34,27 @@ public class CryptoManager implements BotListener {
     private final GraphPriceWorker graphPriceWorker;
 
     /**
-     * Builds a manager with its associated listener
+     * Builds a manager backed by the SQL persistence layer.
      */
     public CryptoManager() {
-        this.cryptoPersistence = new CryptoSQL();
+        this(new CryptoSQL(), new AtomicSQL(), new UserPortfolioSQL(), new UserManager());
+    }
+
+    /**
+     * Builds a manager with explicit dependencies.
+     *
+     * @param cryptoPersistence    the crypto persistence layer
+     * @param atomicDb             the atomic multi-table persistence layer
+     * @param portfolioPersistence the portfolio persistence layer
+     * @param userManager          the user manager used for balance lookups
+     */
+    public CryptoManager(CryptoPersistence cryptoPersistence, AtomicPersistence atomicDb,
+                         UserPortfolioPersistence portfolioPersistence, UserManager userManager) {
+        this.cryptoPersistence = cryptoPersistence;
         this.activeBots = new ConcurrentHashMap<>();
-        this.atomicDb = new AtomicSQL();
-        this.portfolioPersistence = new UserPortfolioSQL();
-        this.userManager = new UserManager();
+        this.atomicDb = atomicDb;
+        this.portfolioPersistence = portfolioPersistence;
+        this.userManager = userManager;
         this.graphPriceWorker = new GraphPriceWorker(cryptoPersistence);
     }
 
