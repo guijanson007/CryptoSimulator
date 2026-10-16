@@ -118,6 +118,16 @@ public class UserManager {
 		notifyBalanceListeners(newBalance);
 	}
 
+	/** Re-reads the current user's balance and notifies the balance listener.
+	 *  @throws UserNotFoundException if no user is logged in or the user no longer exists
+	 *  @throws DbConnectionException if the db connection fails */
+	public void refreshBalance() throws UserNotFoundException, DbConnectionException {
+		if (currentUserId == -1) {
+			throw new UserNotFoundException();
+		}
+		notifyBalanceListeners(userPersistence.getUserBalance(currentUserId));
+	}
+
 	/** Deducts funds from the current user's balance.
 	 *  @param amount the amount to deduct
 	 *  @throws UserNotFoundException if no user is logged in

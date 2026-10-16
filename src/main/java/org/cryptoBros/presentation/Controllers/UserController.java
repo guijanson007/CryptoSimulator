@@ -318,8 +318,8 @@ public class UserController {
      */
     public void buyCrypto(String currentSymbol, double units) {
         try {
-           double totalCost = cryptoManager.purchase(userManager.getCurrentUserId(), currentSymbol, units);
-           userManager.deductBalance(totalCost);
+           cryptoManager.purchase(userManager.getCurrentUserId(), currentSymbol, units);
+           userManager.refreshBalance();
         } catch (DbConnectionException | CryptoNotFoundException | PurchaseNotAddedException | UserNotFoundException | InsufficientBalanceException e) {
             DisplayMessage.showMessage(frameController.getMainFrame(), e.getMessage());
         }

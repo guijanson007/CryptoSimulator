@@ -567,3 +567,21 @@ Fix order: skip-at-load before the constructor guard, so no commit lets one bad 
 **Choice:** A. Trade-off accepted: a persistently failing trade path now logs SEVERE every tick instead of dying once silently.
 
 **Objections:** None.
+
+## D41 — Atomic purchase wired in (D25, bugs #1 and #2) (2026-10-16)
+
+**Decision:** Replace the split buy (`CryptoManager.purchase` → `UserController` → `UserManager.deductBalance`)
+with `AtomicSQL.purchaseAtomically`, one transaction with `SELECT … FOR UPDATE` on coin and user rows.
+
+**Test changes (Q38, option A):** CryptoManagerTest #3, #4, #5 retired (the Java balance check no longer exists);
+their intents are covered by PurchaseIT #57 (insufficient → nothing changes), #68 (exact balance allowed),
+#58 (charged locked price × units, return value). New cases #59, #60 (unknown user/coin). Total stays at 67(+#69 if approved).
+
+**Evidence limits:** No red-first test exists for bugs #1/#2: the old split API cannot express atomicity (F4).
+The race fix for #2 is verified by design (row locks), not by a concurrency test (D9).
+
+**Side effects:** `InsufficientBalanceException` gained a message constructor (its no-arg form produced an empty
+error dialog). `UserManager.deductBalance` and `CryptoManager.userManager` are now unused; left in place.
+Theoretical deadlock with a concurrent coin deletion (opposite lock order) is detected by PostgreSQL and rolled back.
+
+**Objections:** None.
