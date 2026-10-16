@@ -23,11 +23,21 @@ public class UserManager {
     private ScheduledExecutorService scheduler;
 
     /**
-     * Creates a new UserManager.
+     * Creates a new UserManager backed by the SQL persistence layer.
      */
     public UserManager() {
-        this.userPersistence = new UserSQL();
-        this.atomicDb = new AtomicSQL();
+        this(new UserSQL(), new AtomicSQL());
+    }
+
+    /**
+     * Creates a UserManager with explicit persistence dependencies.
+     *
+     * @param userPersistence the user persistence layer
+     * @param atomicDb        the atomic persistence layer
+     */
+    public UserManager(UserPersistence userPersistence, AtomicPersistence atomicDb) {
+        this.userPersistence = userPersistence;
+        this.atomicDb = atomicDb;
     }
 
 	/** Adds a user to the database.
