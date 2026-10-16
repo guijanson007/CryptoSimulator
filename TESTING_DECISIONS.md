@@ -386,3 +386,19 @@ C deferred. Suspected bug #8 (unverified): negative volatility throws after comm
 new cases #61–64: `createCrypto` rejects volatility ≤ 0, volatility > 10, price ≤ 0, missing symbol/name.
 
 **Objections:** None.
+
+## D28 — Bug #3: fix (2026-10-16)
+
+**Decision:** Fix or report-only for bug #3, confirmed by TradingIT #19 (`expected: <100.5> but was: <100.0>`).
+
+**Options considered:**
+- A. Fix: weighted-average `buy_price` in the `buyCrypto` upsert; existing rows not backfilled.
+- B. Report only: `@Disabled("BUG-3: ...")`.
+
+**Choice:** A. Commit order base → TradingIT (red on #19) → fix, so history shows the test found the bug;
+the red commit compiles (D21 requires compile, not pass).
+
+**Also recorded:** #28 passed, contrary to the prediction in D24; suspected bug #5 did not reproduce at 10.005
+(likely because PostgreSQL's float8→numeric conversion goes through a ~15-significant-digit decimal form; unverified).
+
+**Objections:** None.

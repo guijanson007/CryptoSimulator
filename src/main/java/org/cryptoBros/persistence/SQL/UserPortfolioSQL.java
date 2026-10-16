@@ -28,7 +28,7 @@ public class UserPortfolioSQL implements UserPortfolioPersistence {
     }
 
     /**
-     * Records a crypto purchase for a user, inserting a new portfolio row or accumulating units on an existing one.
+     * Records a crypto purchase for a user, inserting a new portfolio row or accumulating units and averaging the buy price on an existing one.
      * Uses ON CONFLICT to upsert; the database trigger raises the crypto price by 1% on insert/update.
      *
      * @param userId       the ID of the user buying the crypto
@@ -51,13 +51,15 @@ public class UserPortfolioSQL implements UserPortfolioPersistence {
         }
 
         // ON CONFLICT targets the composite PK (user_id, crypto_id).
-        // On a duplicate key we just accumulate units; buy_price remains
-        // unchanged by this statement.
+        // On a duplicate key we accumulate units and set buy_price to the
+        // weighted average cost; SET expressions read the pre-update row.
         String query = """
                 INSERT INTO Portfolio (user_id, crypto_id, units, buy_price)
                 VALUES (?, ?, ?, ?)
                 ON CONFLICT (user_id, crypto_id)
-                DO UPDATE SET units = Portfolio.units + EXCLUDED.units
+                DO UPDATE SET units = Portfolio.units + EXCLUDED.units,
+                              buy_price = (Portfolio.units * Portfolio.buy_price + EXCLUDED.units * EXCLUDED.buy_price)
+                                          / (Portfolio.units + EXCLUDED.units)
                 """;
 
         try (Connection conn = db.connect();
