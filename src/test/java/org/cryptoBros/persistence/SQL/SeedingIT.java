@@ -77,4 +77,16 @@ class SeedingIT extends IntegrationTestBase {
         assertEquals(5, coinCount());
         assertEquals(5, bots.size());
     }
+
+    @Test
+    @DisplayName("#66 a stored bot with invalid volatility is skipped and the other bots still load (D38)")
+    void seed_skipsBotsWithInvalidVolatility() throws Exception {
+        atomic.loadInitialData(listener, true);
+        execute("UPDATE Bots SET volatility = -1 WHERE crypto_id = 'BTC'");
+
+        List<Bot> bots = atomic.loadInitialData(listener, true);
+
+        assertEquals(4, bots.size());
+        assertTrue(bots.stream().noneMatch(bot -> bot.getCryptoSymbol().equals("BTC")));
+    }
 }
