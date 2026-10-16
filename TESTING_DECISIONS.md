@@ -545,3 +545,12 @@ throwing backstop does not fix that half).
 Fix order: skip-at-load before the constructor guard, so no commit lets one bad row crash loading.
 
 **Objections:** None.
+
+## D39 — Bot construction guard (#49) (2026-10-16)
+
+**Decision:** Apply D27's backstop: the `Bot` constructor rejects volatility outside (0, MAX_VOLATILITY] with
+`IllegalArgumentException`. Confirmed missing by BotTest #49 (0, -1 and 10.01 accepted).
+
+**Note:** A package-private `Bot.isRunning()` was added for #48, the only way to observe that stop() took effect.
+
+**Objections:** None.

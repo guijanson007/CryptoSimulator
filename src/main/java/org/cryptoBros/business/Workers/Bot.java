@@ -60,6 +60,10 @@ public class Bot implements Runnable {
      * @param rng          the random source deciding between buy and sell
      */
     public Bot(long botUserId, String cryptoSymbol, double volatility, BotListener botListener, Random rng) {
+        if (!(volatility > 0 && volatility <= Crypto.MAX_VOLATILITY)) {
+            throw new IllegalArgumentException(
+                    "Volatility must be in (0, " + Crypto.MAX_VOLATILITY + "], was " + volatility);
+        }
         this.botUserId          = botUserId;
         this.cryptoSymbol       = cryptoSymbol;
         this.volatility         = volatility;
