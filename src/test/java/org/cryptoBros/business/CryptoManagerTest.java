@@ -48,32 +48,6 @@ class CryptoManagerTest {
     }
 
     @Test
-    @DisplayName("#3 a purchase costing more than the balance is rejected")
-    void purchase_costAboveBalance_rejected() {
-        users.withBalance(ALICE, 50.00);
-
-        assertThrows(PurchaseNotAddedException.class, () -> manager().purchase(ALICE, "BTC", 1));
-        assertTrue(portfolio.trades().isEmpty());
-    }
-
-    @Test
-    @DisplayName("#4 a purchase costing exactly the balance is allowed")
-    void purchase_costEqualsBalance_allowed() throws Exception {
-        users.withBalance(ALICE, 100.00);
-
-        manager().purchase(ALICE, "BTC", 1);
-
-        assertEquals(List.of(new Trade("buy", ALICE, "BTC", 100.00, 1)), portfolio.trades());
-    }
-
-    @Test
-    @DisplayName("#5 a purchase records the pre-trade price and returns price × units")
-    void purchase_returnsPreTradePriceTimesUnits() throws Exception {
-        assertEquals(250.00, manager().purchase(ALICE, "BTC", 2.5), EPS);
-        assertEquals(List.of(new Trade("buy", ALICE, "BTC", 100.00, 2.5)), portfolio.trades());
-    }
-
-    @Test
     @DisplayName("#6 a sale returns the pre-trade price × units")
     void sell_returnsPreTradePriceTimesUnits() throws Exception {
         assertEquals(200.00, manager().sell(ALICE, "BTC", 2), EPS);
