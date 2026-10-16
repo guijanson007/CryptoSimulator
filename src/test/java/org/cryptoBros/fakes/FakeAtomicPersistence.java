@@ -34,6 +34,11 @@ public class FakeAtomicPersistence implements AtomicPersistence {
         throw unexpected();
     }
 
+    @Override
+    public double purchaseAtomically(long userId, String symbol, double units) {
+        throw unexpected();
+    }
+
     private static UnsupportedOperationException unexpected() {
         return new UnsupportedOperationException("Not expected in this test");
     }

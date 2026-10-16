@@ -101,6 +101,14 @@ public class AtomicSQL implements AtomicPersistence {
         RETURNING message
     """;
 
+    private static final String LOCK_PRICE = """
+        SELECT current_price FROM Cryptocurrency WHERE symbol = ? FOR UPDATE
+        """;
+
+    private static final String LOCK_BALANCE = """
+        SELECT balance FROM Users WHERE user_id = ? FOR UPDATE
+        """;
+
     /**
      * Atomically creates a cryptocurrency and its associated bot user within a single transaction.
      * Inserts a bot user row, the crypto row, and the bot mapping row; rolls back all changes if any step fails.
@@ -395,6 +403,81 @@ public class AtomicSQL implements AtomicPersistence {
             return messages;
         }catch (SQLException e) {
             throw new DbConnectionException("Error fetching notifications: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Buys a crypto for a user in a single transaction. The coin and user rows are locked with
+     * SELECT ... FOR UPDATE, so the price charged is the price at which the purchase is recorded and the
+     * balance cannot change between the check and the deduction.
+     *
+     * @param userId the buying user
+     * @param symbol the crypto to buy
+     * @param units  the number of units to buy; callers must ensure it is positive
+     * @return the total cost charged (locked price × units)
+     * @throws DbConnectionException        if the database connection or transaction fails
+     * @throws CryptoNotFoundException      if the crypto does not exist
+     * @throws UserNotFoundException        if the user does not exist
+     * @throws InsufficientBalanceException if the user cannot afford the purchase
+     */
+    @Override
+    public double purchaseAtomically(long userId, String symbol, double units)
+            throws DbConnectionException, CryptoNotFoundException, UserNotFoundException, InsufficientBalanceException {
+
+        try (Connection conn = DbConnectionSingleton.getInstance().connect()) {
+            conn.setAutoCommit(false);
+
+            try {
+                double price;
+                try (PreparedStatement ps = conn.prepareStatement(LOCK_PRICE)) {
+                    ps.setString(1, symbol);
+                    ResultSet rs = ps.executeQuery();
+                    if (!rs.next())
+                        throw new CryptoNotFoundException("Crypto '" + symbol + "' not found.");
+                    price = rs.getDouble("current_price");
+                }
+
+                double balance;
+                try (PreparedStatement ps = conn.prepareStatement(LOCK_BALANCE)) {
+                    ps.setLong(1, userId);
+                    ResultSet rs = ps.executeQuery();
+                    if (!rs.next())
+                        throw new UserNotFoundException("User with user_id " + userId + " not found");
+                    balance = rs.getDouble("balance");
+                }
+
+                double cost = price * units;
+                if (cost > balance)
+                    throw new InsufficientBalanceException("You don't have enough money to purchase this crypto.");
+
+                // Raises the price by 1% via trigger, inside this transaction
+                try (PreparedStatement ps = conn.prepareStatement(UserPortfolioSQL.BUY_UPSERT)) {
+                    ps.setLong(1, userId);
+                    ps.setString(2, symbol);
+                    ps.setDouble(3, units);
+                    ps.setDouble(4, price);
+                    ps.executeUpdate();
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement(ADJUST_BALANCE)) {
+                    ps.setDouble(1, -cost);
+                    ps.setLong(2, userId);
+                    ps.executeUpdate();
+                }
+
+                conn.commit();
+                return cost;
+
+            } catch (CryptoNotFoundException | UserNotFoundException | InsufficientBalanceException e) {
+                conn.rollback();
+                throw e;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw new DbConnectionException("DB transaction error: " + e.getMessage());
+            }
+
+        } catch (SQLException e) {
+            throw new DbConnectionException("DB connection error: " + e.getMessage());
         }
     }
 
