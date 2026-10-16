@@ -135,6 +135,9 @@ public class CryptoManager implements BotListener {
             SaleNotAddedException,
             CryptoNotFoundException
     {
+        if (units <= 0) {
+            throw new SaleNotAddedException("Units to sell must be greater than zero.");
+        }
         double priceBeforeSell = cryptoPersistence.getCurrentPrice(symbol);
         double proceeds = priceBeforeSell * units;
         portfolioPersistence.sellCrypto(userId, symbol, units);

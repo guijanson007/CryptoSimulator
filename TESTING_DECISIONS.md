@@ -502,3 +502,15 @@ match no user (identity ids start at 1), and login always sets it first, so no q
 (reachable only via bug #6) are now rejected with a message instead of silently debiting.
 
 **Objections:** None.
+
+## D36 — Bug #6: non-positive sell units (2026-10-16)
+
+**Decision:** Fix or report-only for bug #6, confirmed by CryptoManagerTest #7 (0 and -5 accepted by `sell`).
+
+**Options considered:**
+- A. Fix in `CryptoManager.sell`: throw `SaleNotAddedException` for units ≤ 0 (mirrors `purchase`); already caught by `UserController.sellCrypto`.
+- B. Report only (`@Disabled`); not UI-reachable today.
+
+**Choice:** A. A matching DAO-level check in `UserPortfolioSQL.sellCrypto` was not added: no approved test covers it.
+
+**Objections:** None.
