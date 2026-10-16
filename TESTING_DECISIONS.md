@@ -432,3 +432,18 @@ duplicates. `247dfb6` introduced the `hasCryptos` guard, so #42, not #41, guards
 display names corrected accordingly.
 
 **Objections:** None.
+
+## D31 — Bug #4: schema script not re-runnable (2026-10-16)
+
+**Decision:** Fix or report-only for bug #4, confirmed by SchemaIT #44 (`relation "notifications" already exists`
+on second application; first application on a fresh database succeeds).
+
+**Options considered:**
+- A. Fix: add `DROP TABLE IF EXISTS Notifications CASCADE;` to the top of `createTables.sql`.
+- B. Report only (`@Disabled`).
+
+**Choice:** A. Re-running the script now resets all tables including pending notifications, consistent with
+the existing DROP statements. SchemaIT runs in a throwaway database (`schema_check`), so the shared test
+database is unaffected either way.
+
+**Objections:** None.
