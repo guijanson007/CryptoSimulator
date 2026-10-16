@@ -72,4 +72,18 @@ public class DbConnectionSingleton {
         this.username = dbCredentials.username();
         this.password = dbCredentials.password();
     }
+
+    /**
+     * Test seam: points the shared instance at an explicit database instead of the one in config.json.
+     * Integration tests use it to target a Testcontainers PostgreSQL; production code calls {@link #loadConfig()}.
+     *
+     * @param jdbcUrl  the JDBC URL of the database
+     * @param username the database user
+     * @param password the database password
+     */
+    public void configure(String jdbcUrl, String username, String password) {
+        this.jdbcUrl = jdbcUrl;
+        this.username = username;
+        this.password = password;
+    }
 }
