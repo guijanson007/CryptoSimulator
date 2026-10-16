@@ -10,6 +10,7 @@ A desktop cryptocurrency trading simulator built with Java Swing. Users can regi
 - [Database Setup](#database-setup)
 - [Configuration](#configuration)
 - [Building and Running](#building-and-running)
+- [Running Tests](#running-tests)
 - [Project Structure](#project-structure)
 - [Architecture Overview](#architecture-overview)
 - [Key Design Patterns](#key-design-patterns)
@@ -98,6 +99,37 @@ No system Maven is needed; the Maven wrapper (`./mvnw`) downloads the pinned ver
 `java -cp target/CryptoBros-1.0-SNAPSHOT.jar …` alone fails with missing classes.
 
 The application launches a Swing window. On startup, it loads `config.json`, verifies the database connection, and then shows the Welcome screen.
+
+---
+
+## Running Tests
+
+| Command | Runs | Needs |
+|---|---|---|
+| `./mvnw test` | Unit tests (`*Test`): business rules, bots, credentials | JDK 25 |
+| `./mvnw verify` | Unit tests + integration tests (`*IT`) against a real PostgreSQL, then a coverage report | JDK 25 and Docker or Podman |
+
+Integration tests start a throwaway `postgres:18` container with [Testcontainers](https://testcontainers.com);
+your own database and `config.json` are never used.
+
+**Docker** works as is. **Rootless Podman** (e.g. Fedora) needs a one-time setup per machine:
+
+```bash
+systemctl --user enable --now podman.socket
+```
+
+and this line in `~/.testcontainers.properties` (create the file if it does not exist):
+
+```properties
+docker.host=unix:///run/user/<your uid>/podman/podman.sock
+```
+
+Run a single class with `./mvnw test -Dtest=BotTest` (unit) or `./mvnw verify -Dit.test=TradingIT` (integration;
+the unit tests still run first).
+The coverage report is written to `target/site/jacoco/index.html`; it is only generated when every test passes.
+
+Test design decisions, the bugs the tests found, and what is deliberately untested are recorded in
+[`TESTING_DECISIONS.md`](TESTING_DECISIONS.md).
 
 ---
 
