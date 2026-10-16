@@ -18,6 +18,21 @@ import java.util.List;
  * SQL implementation of UserPortfolioPersistence using PostgreSQL.
  */
 public class UserPortfolioSQL implements UserPortfolioPersistence {
+
+    /**
+     * Upsert used for every purchase. ON CONFLICT targets the composite PK (user_id, crypto_id); on a duplicate
+     * key units accumulate and buy_price becomes the weighted average cost (SET expressions read the pre-update
+     * row). Parameters: user_id, crypto_id, units, buy_price. Shared with AtomicSQL.
+     */
+    static final String BUY_UPSERT = """
+            INSERT INTO Portfolio (user_id, crypto_id, units, buy_price)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT (user_id, crypto_id)
+            DO UPDATE SET units = Portfolio.units + EXCLUDED.units,
+                          buy_price = (Portfolio.units * Portfolio.buy_price + EXCLUDED.units * EXCLUDED.buy_price)
+                                      / (Portfolio.units + EXCLUDED.units)
+            """;
+
     private final DbConnectionSingleton db;
 
     /**
@@ -50,20 +65,8 @@ public class UserPortfolioSQL implements UserPortfolioPersistence {
             throw new PurchaseNotAddedException("Current price cannot be negative or equal to zero");
         }
 
-        // ON CONFLICT targets the composite PK (user_id, crypto_id).
-        // On a duplicate key we accumulate units and set buy_price to the
-        // weighted average cost; SET expressions read the pre-update row.
-        String query = """
-                INSERT INTO Portfolio (user_id, crypto_id, units, buy_price)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT (user_id, crypto_id)
-                DO UPDATE SET units = Portfolio.units + EXCLUDED.units,
-                              buy_price = (Portfolio.units * Portfolio.buy_price + EXCLUDED.units * EXCLUDED.buy_price)
-                                          / (Portfolio.units + EXCLUDED.units)
-                """;
-
         try (Connection conn = db.connect();
-             PreparedStatement ps = conn.prepareStatement(query)) {
+             PreparedStatement ps = conn.prepareStatement(BUY_UPSERT)) {
 
             ps.setLong(1, userId);
             ps.setString(2, cryptoSymbol);
