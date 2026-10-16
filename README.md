@@ -128,6 +128,10 @@ Run a single class with `./mvnw test -Dtest=BotTest` (unit) or `./mvnw verify -D
 the unit tests still run first).
 The coverage report is written to `target/site/jacoco/index.html`; it is only generated when every test passes.
 
+A failing test is never retried automatically. A test confirmed to be flaky (it fails, then passes on a re-run with
+no code change) is quarantined with `@Disabled("FLAKY: <what was seen>, <date>")`, recorded in
+`TESTING_DECISIONS.md`, and then fixed or deleted.
+
 Test design decisions, the bugs the tests found, and what is deliberately untested are recorded in
 [`TESTING_DECISIONS.md`](TESTING_DECISIONS.md).
 
