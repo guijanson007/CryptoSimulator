@@ -15,11 +15,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * SQL implementation of AtomicPersistence using PostgreSQL transactions.
  */
 public class AtomicSQL implements AtomicPersistence {
+
+    private static final Logger LOG = Logger.getLogger(AtomicSQL.class.getName());
 
     /** Creates a new AtomicSQL instance. */
     public AtomicSQL() {}
@@ -315,12 +318,13 @@ public class AtomicSQL implements AtomicPersistence {
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                bots.add(new Bot(
-                        rs.getLong("bot_id"),
-                        rs.getString("crypto_id"),
-                        rs.getDouble("volatility"),
-                        cryptoManager
-                ));
+                String symbol = rs.getString("crypto_id");
+                double volatility = rs.getDouble("volatility");
+                if (!(volatility > 0 && volatility <= Crypto.MAX_VOLATILITY)) {
+                    LOG.warning("Skipping bot for " + symbol + ": stored volatility " + volatility + " is out of range");
+                    continue;
+                }
+                bots.add(new Bot(rs.getLong("bot_id"), symbol, volatility, cryptoManager));
             }
         }
 

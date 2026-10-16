@@ -530,3 +530,18 @@ validation; invalid coins already stored still affect bot loading (to be decided
 throwing backstop does not fix that half).
 
 **Objections:** None.
+
+## D38 — Invalid stored volatility at load time (Q34) (2026-10-16)
+
+**Decision:** How bad volatility in already-stored rows is handled, given D27's throwing `Bot` constructor would abort
+`loadExistingBots` on the first bad row so later coins get no bot.
+
+**Options considered:**
+- A. Constructor throws only (D27 as written): reproduces the abort-the-loop failure.
+- B. `Bot` tolerates bad volatility (start() logs and schedules nothing): needs a test-only accessor to observe.
+- C. Skip out-of-range rows in `loadExistingBots` with a warning; keep the constructor throw as a backstop.
+
+**Choice:** C. Shared cap `Crypto.MAX_VOLATILITY` (10.0) used by `CryptoManager`, `AtomicSQL` and `Bot`. New case #66.
+Fix order: skip-at-load before the constructor guard, so no commit lets one bad row crash loading.
+
+**Objections:** None.
