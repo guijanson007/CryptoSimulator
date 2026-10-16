@@ -72,6 +72,12 @@ class UserManagerTest {
     }
 
     @Test
+    @DisplayName("#69 refreshing the balance with no user logged in is rejected")
+    void refreshBalance_noUserLoggedIn_throws() {
+        assertThrows(UserNotFoundException.class, () -> loggedOut().refreshBalance());
+    }
+
+    @Test
     @DisplayName("#15 adding a zero or negative amount is rejected (D33, suspected bug #7)")
     void addBalance_nonPositiveAmount_rejected() throws Exception {
         UserManager manager = loggedInAs(ALICE);
