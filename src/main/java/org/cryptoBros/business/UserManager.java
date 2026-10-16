@@ -105,10 +105,14 @@ public class UserManager {
 	 * @param amount the amount to add
 	 * @throws UserNotFoundException if no user is logged in
 	 * @throws DbConnectionException if the db connection fails
+	 * @throws InvalidAmountException if the amount is zero or negative
 	 */
-	public void addBalance(double amount) throws UserNotFoundException, DbConnectionException {
+	public void addBalance(double amount) throws UserNotFoundException, DbConnectionException, InvalidAmountException {
 		if (currentUserId == -1) {
 			throw new UserNotFoundException();
+		}
+		if (amount <= 0) {
+			throw new InvalidAmountException("Amount must be greater than zero.");
 		}
 		double newBalance = userPersistence.adjustUserBalance(currentUserId, amount);
 		notifyBalanceListeners(newBalance);

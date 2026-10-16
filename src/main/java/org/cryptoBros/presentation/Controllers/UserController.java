@@ -172,7 +172,7 @@ public class UserController {
     public void addBalance(double addBalanceAmount) {
         try {
             userManager.addBalance(addBalanceAmount);
-        } catch (UserNotFoundException | DbConnectionException e){
+        } catch (UserNotFoundException | DbConnectionException | InvalidAmountException e){
 			DisplayMessage.showMessage(frameController.getMainFrame() ,e.getMessage());
         }
     }
@@ -305,7 +305,7 @@ public class UserController {
         try {
             double proceeds = cryptoManager.sell(userManager.getCurrentUserId(), symbol, units);
             userManager.addBalance(proceeds);
-        } catch (DbConnectionException | CryptoNotFoundException | SaleNotAddedException | UserNotFoundException e) {
+        } catch (DbConnectionException | CryptoNotFoundException | SaleNotAddedException | UserNotFoundException | InvalidAmountException e) {
             DisplayMessage.showMessage(frameController.getMainFrame(), e.getMessage());
         }
     }

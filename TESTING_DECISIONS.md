@@ -488,3 +488,17 @@ match no user (identity ids start at 1), and login always sets it first, so no q
 `== -1` guards now also hold before the first login.
 
 **Objections:** None.
+
+## D35 — Bug #7: non-positive deposits (2026-10-16)
+
+**Decision:** Fix or report-only for bug #7, confirmed by UserManagerTest #15 (0.00 and -500.00 both accepted).
+
+**Options considered:**
+- A. Fix: `UserManager.addBalance` throws `InvalidAmountException` for amount ≤ 0; `UserController.addBalance` and
+  `sellCrypto` catch it and show the message (2 catch clauses; same commit so every commit compiles).
+- B. Report only (`@Disabled`).
+
+**Choice:** A. First edit to `UserController` (last changed 2026-06-16 by teammates). Side effect: sell proceeds ≤ 0
+(reachable only via bug #6) are now rejected with a message instead of silently debiting.
+
+**Objections:** None.
