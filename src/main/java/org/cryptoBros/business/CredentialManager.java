@@ -40,10 +40,15 @@ public class CredentialManager {
 	 *
 	 * @param password       the plaintext password to verify
 	 * @param hashedPassword the BCrypt hash to compare against
-	 * @return {@code true} if the password matches the hash
+	 * @return {@code true} if the password matches the hash; {@code false} if it does not, or if the
+	 *         stored value is not a valid BCrypt hash (e.g. the empty password of a bot user)
 	 */
 	public boolean checkHashedPassword(char[] password,  String hashedPassword) {
-		return BCrypt.checkpw(new String(password), hashedPassword);
+		try {
+			return BCrypt.checkpw(new String(password), hashedPassword);
+		} catch (IllegalArgumentException | IndexOutOfBoundsException e) {
+			return false;
+		}
 	}
 
 	/**

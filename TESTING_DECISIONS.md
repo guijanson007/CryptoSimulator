@@ -585,3 +585,20 @@ error dialog). `UserManager.deductBalance` and `CryptoManager.userManager` are n
 Theoretical deadlock with a concurrent coin deletion (opposite lock order) is detected by PostgreSQL and rolled back.
 
 **Objections:** None.
+
+## D42 — Bug #13: login with a bot username crashes (2026-10-16)
+
+**Decision:** Fix or report-only for bug #13, confirmed by AccountIT #70: bots are stored with an empty password,
+and `BCrypt.checkpw` throws `StringIndexOutOfBoundsException` (unchecked; predicted `IllegalArgumentException`,
+wrong type), which escapes `AccountManager.logInNormalUser` and is not caught by the UI.
+
+**Options considered:**
+- A. `checkHashedPassword` returns false for unparseable hashes (catch `IllegalArgumentException | IndexOutOfBoundsException`).
+- B. Pre-check the `$2` prefix (misses other malformed hashes).
+- C. Store a valid, unusable hash for bots (data change; existing DBs unaffected).
+- D. Report only (`@Disabled`).
+
+**Choice:** A. Fails closed; the UI shows the same message as a wrong password, without revealing the bot account.
+Trade-off: a corrupted hash for a real user also reads as "incorrect password", with no log line.
+
+**Objections:** None.
