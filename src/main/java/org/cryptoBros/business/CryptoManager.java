@@ -25,8 +25,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class CryptoManager implements BotListener {
 
-    private static final double MAX_VOLATILITY = 10.0;
-
     private CryptoListener cryptoListener;
     private CryptoPersistence cryptoPersistence;
     private final Map<String, Bot> activeBots;
@@ -86,8 +84,8 @@ public class CryptoManager implements BotListener {
         if (!(crypto.getCurrentPrice() > 0) || !(crypto.getInitialPrice() > 0)) {
             throw new CryptoNotAddedException("Prices must be greater than zero.");
         }
-        if (!(crypto.getVolatility() > 0 && crypto.getVolatility() <= MAX_VOLATILITY)) {
-            throw new CryptoNotAddedException("Volatility must be greater than 0 and at most " + MAX_VOLATILITY + ".");
+        if (!(crypto.getVolatility() > 0 && crypto.getVolatility() <= Crypto.MAX_VOLATILITY)) {
+            throw new CryptoNotAddedException("Volatility must be greater than 0 and at most " + Crypto.MAX_VOLATILITY + ".");
         }
     }
 
