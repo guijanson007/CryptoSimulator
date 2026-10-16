@@ -87,19 +87,15 @@ Initial coin data is seeded from `src/main/java/org/cryptoBros/crypto.json`. The
 
 ## Building and Running
 
-```bash
-# Compile and package
-mvn package -DskipTests
-
-# Run
-java -cp target/CryptoBros-1.0-SNAPSHOT.jar org.cryptoBros.Main
-```
-
-Or run directly through Maven:
+Run from the repository root: `config.json`, `crypto.json` and `images/` are read relative to it.
+No system Maven is needed; the Maven wrapper (`./mvnw`) downloads the pinned version.
 
 ```bash
-mvn compile exec:java -Dexec.mainClass="org.cryptoBros.Main"
+./mvnw compile exec:java -Dexec.mainClass="org.cryptoBros.Main"
 ```
+
+`mvn package` builds a jar without its dependencies (PostgreSQL driver, Gson, …), so running it with
+`java -cp target/CryptoBros-1.0-SNAPSHOT.jar …` alone fails with missing classes.
 
 The application launches a Swing window. On startup, it loads `config.json`, verifies the database connection, and then shows the Welcome screen.
 
