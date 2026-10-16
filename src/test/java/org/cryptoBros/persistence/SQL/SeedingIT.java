@@ -11,8 +11,9 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Initial coin seeding from crypto.json (risk C). Guards the regressions fixed in 247dfb6
- * ("always loading initial cryptos again") and 06d8ccf ("deleted cryptos being created again on new login").
+ * Initial coin seeding from crypto.json (risk C). #42 guards the regressions fixed in 247dfb6
+ * ("always loading initial cryptos again") and 06d8ccf ("deleted cryptos being created again on new login");
+ * verified by mutation in D30.
  * Bots returned by loadInitialData are constructed but never started here.
  */
 class SeedingIT extends IntegrationTestBase {
@@ -38,7 +39,7 @@ class SeedingIT extends IntegrationTestBase {
     }
 
     @Test
-    @DisplayName("#41 seeding twice does not duplicate coins or bots (regression 247dfb6)")
+    @DisplayName("#41 seeding twice does not duplicate coins or bots")
     void seed_secondCall_doesNotDuplicate() throws Exception {
         atomic.loadInitialData(listener, true);
 
@@ -50,7 +51,7 @@ class SeedingIT extends IntegrationTestBase {
     }
 
     @Test
-    @DisplayName("#42 a deleted default coin is not recreated on the next load (regression 06d8ccf)")
+    @DisplayName("#42 a deleted default coin is not recreated on the next load (regressions 247dfb6, 06d8ccf)")
     void seed_afterDeletingOneCoin_doesNotRecreateIt() throws Exception {
         atomic.loadInitialData(listener, true);
         atomic.deleteCryptoWithBot("Bitcoin");

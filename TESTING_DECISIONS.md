@@ -418,3 +418,17 @@ the red commit compiles (D21 requires compile, not pass).
 red run (assertThrows failed first) and are verified only after the fix.
 
 **Objections:** None.
+
+## D30 — SeedingIT mutation check (2026-10-16)
+
+**Decision:** Verify the seeding regression tests can fail (Q25).
+
+**Method:** Temporarily replaced `if (!hasCryptos(conn))` with `if (true)` in `AtomicSQL.loadInitialData`, ran SeedingIT,
+reverted with `git checkout` (never committed).
+
+**Result:** #42 failed (`expected: <0> but was: <1>`; deleted BTC re-created), #40/#41/#43 passed.
+Prediction that #41 would fail was wrong: a second guard (`cryptoExists` per coin) independently prevents
+duplicates. `247dfb6` introduced the `hasCryptos` guard, so #42, not #41, guards both 247dfb6 and 06d8ccf;
+display names corrected accordingly.
+
+**Objections:** None.
