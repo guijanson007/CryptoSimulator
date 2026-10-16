@@ -106,7 +106,7 @@ public class AtomicSQL implements AtomicPersistence {
      * @return the generated bot user ID
      * @throws DbConnectionException  if the database connection or transaction fails
      * @throws BotGenerationException  if the bot user or bot mapping could not be inserted
-     * @throws CryptoNotAddedException if the crypto row could not be inserted
+     * @throws CryptoNotAddedException if a crypto with the same symbol already exists, or the crypto row could not be inserted
      */
     @Override
     public long createCryptoWithBot(Crypto crypto)
@@ -116,6 +116,9 @@ public class AtomicSQL implements AtomicPersistence {
             conn.setAutoCommit(false);
 
             try {
+                if (cryptoExists(conn, crypto.getSymbol()))
+                    throw new CryptoNotAddedException("Crypto '" + crypto.getSymbol() + "' already exists.");
+
                 long botUserId = insertUser(conn, crypto.getSymbol());
                 insertCrypto(conn, crypto);
                 insertBot(conn, botUserId, crypto.getSymbol(), crypto.getVolatility());

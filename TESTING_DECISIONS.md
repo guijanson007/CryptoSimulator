@@ -402,3 +402,19 @@ the red commit compiles (D21 requires compile, not pass).
 (likely because PostgreSQL's float8→numeric conversion goes through a ~15-significant-digit decimal form; unverified).
 
 **Objections:** None.
+
+## D29 — Bug #9: duplicate-symbol error (2026-10-16)
+
+**Decision:** Fix or report-only for bug #9, confirmed by AtomicSqlIT #30: a duplicate symbol throws
+`DbConnectionException("... users_email_key")` instead of `CryptoNotAddedException`, because the bot user
+(unique email `bot.<SYMBOL>@...`) is inserted before the coin.
+
+**Options considered:**
+- A. Check `cryptoExists(conn, symbol)` first and throw `CryptoNotAddedException` (~3 lines, reuses existing helper).
+- B. Reorder inserts so `ON CONFLICT DO NOTHING` catches it.
+- C. Report only (`@Disabled`); leaves #30's rollback assertions unverified.
+
+**Choice:** A. Commit order AtomicSqlIT (red on #30) → fix. #30's rollback assertions were not executed in the
+red run (assertThrows failed first) and are verified only after the fix.
+
+**Objections:** None.
