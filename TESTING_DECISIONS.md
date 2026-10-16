@@ -554,3 +554,16 @@ Fix order: skip-at-load before the constructor guard, so no commit lets one bad 
 **Note:** A package-private `Bot.isRunning()` was added for #48, the only way to observe that stop() took effect.
 
 **Objections:** None.
+
+## D40 — Bug #11: bots die silently on unchecked exceptions (Q35/Q36) (2026-10-16)
+
+**Decision:** Fix or report-only for bug #11, confirmed by BotTest #67 (`IllegalStateException: boom` escaped `run()`);
+`scheduleAtFixedRate` suppresses all later runs after any exception, without logging.
+
+**Options considered:**
+- A. Fix: `run()` catches `RuntimeException`, logs at SEVERE, and returns so the scheduler continues.
+- B. Report only (`@Disabled`).
+
+**Choice:** A. Trade-off accepted: a persistently failing trade path now logs SEVERE every tick instead of dying once silently.
+
+**Objections:** None.

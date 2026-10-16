@@ -120,10 +120,15 @@ public class Bot implements Runnable {
      */
     @Override
     public void run() {
-        if (rng.nextBoolean()) {
-            executeBuy();
-        } else {
-            executeSell();
+        try {
+            if (rng.nextBoolean()) {
+                executeBuy();
+            } else {
+                executeSell();
+            }
+        } catch (RuntimeException e) {
+            // Anything escaping run() makes the scheduler silently cancel this bot for good.
+            LOG.log(Level.SEVERE, "Unexpected error in bot for " + cryptoSymbol + "; bot keeps running", e);
         }
     }
 
