@@ -664,3 +664,77 @@ possible from this session (`gh` not authenticated).
 upload-artifact v7.0.1) instead of floating major tags.
 
 **Objections:** None.
+
+## D48 — Benchmark: whether to build one (Q47) (2026-10-18)
+
+**Decision:** Whether the D6 index benchmark is worth building.
+
+**Options considered:** A. Full benchmark (script, fixed workload, spread, environment, README). B. Plan-only comparison, no timings. C. Skip.
+
+**Choice:** A. Justification: `Crypto_History` is never pruned and grows by ~181,440 rows/day with the 5 default
+coins, so the chart query's cost without a matching index grows with each coin's whole history.
+
+**Objections:** None.
+
+## D49 — Benchmark workload (Q48) (2026-10-18)
+
+**Decision:** History sizes.
+
+**Options considered:** A. 1 week only. B. 1 month only. C. 1 day, 1 week and 1 month, each with and without the index.
+
+**Choice:** C. Rows generated with `generate_series` at each default coin's real bot rate (`5 / volatility` s),
+inserted in time order (event_id grows with time, coins interleave, as in production). Triggers bypassed (read-only benchmark).
+
+**Objections:** None.
+
+## D50 — Benchmark timing tool (Q49) (2026-10-18)
+
+**Decision:** How the query is timed.
+
+**Options considered:** A. `EXPLAIN (ANALYZE, TIMING OFF)` loop. B. `pgbench` custom script, `-M prepared`, per-query
+log, plus one `EXPLAIN (ANALYZE, BUFFERS)` per configuration. C. JMH through JDBC.
+
+**Choice:** B. Excludes JDBC/JVM overhead (unaffected by the index). Client inside the server container.
+
+**Objections:** None.
+
+## D51 — Benchmark repetitions (Q50) (2026-10-18)
+
+**Decision:** Repetitions and cache state.
+
+**Options considered:** A. Warm cache, 3 full runs in fresh containers, spread reported. B. Single run. C. A plus restart-based "cold" numbers (misleading: OS page cache not cleared).
+
+**Choice:** A, with one approved deviation: measurement by duration (5 s warm-up, 30 s measured) instead of
+2,000 queries, because the query's open-ended `>= now() - 10 min` window drains as the clock advances; a slow
+configuration measured by count would query a shrinking window. Samples and rows returned are reported per configuration.
+
+**Objections:** None.
+
+## D52 — Benchmark script fixes found by smoke runs (2026-10-18)
+
+**Decision:** Record the defects found before the first real run.
+
+**Found:** (1) Fresh schema had no coins, so generated history violated the `Crypto_History` FK; the generator now
+inserts the 5 default coins. (2) `TRUNCATE` keeps indexes, so the "index: no" configuration after an "index: yes" one
+silently still had the index; every configuration now starts with `DROP INDEX IF EXISTS`. Smoke results (2 s per
+configuration) were discarded, never reported as measurements.
+
+**Objections:** None.
+
+## D53 — Benchmark result and index adoption (Q51) (2026-10-18)
+
+**Result** (`bench/results/2026-10-18-1958.md`, 3 runs, warm cache, i7-8665U laptop, powersave governor, AC power):
+median chart-query latency without / with the `(crypto_id, time_stamp)` index —
+1 day (181k rows): 9.3–11.4 ms / 0.23–0.28 ms; 1 week (1.27M): 51–58 ms / 0.25–0.28 ms;
+1 month (5.44M): 267–330 ms / 0.19–0.23 ms. Without the index cost grows with history (PK bitmap scan at 1 day,
+parallel seq scan at 7 and 30 days); with it, cost stays flat. Ranges are min–max of per-run medians.
+
+**Caveats:** the 10-minute window drained during data generation (rows returned 393–394 at 1 day vs 327–339 at
+1 month), slightly flattering the indexed 1-month timings; single machine, single client, one coin (LTC);
+full run took 22 min.
+
+**Decision:** Add the index to `createTables.sql` (A) rather than only documenting it (B). Write cost per trade
+(one extra B-tree insert via the history trigger) not measured. Existing databases get the index only by
+re-running the schema script (no migration).
+
+**Objections:** None.
