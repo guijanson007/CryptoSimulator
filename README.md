@@ -11,6 +11,7 @@ A desktop cryptocurrency trading simulator built with Java Swing. Users can regi
 - [Configuration](#configuration)
 - [Building and Running](#building-and-running)
 - [Running Tests](#running-tests)
+- [Benchmark](#benchmark)
 - [Project Structure](#project-structure)
 - [Architecture Overview](#architecture-overview)
 - [Key Design Patterns](#key-design-patterns)
@@ -131,6 +132,27 @@ The coverage report is written to `target/site/jacoco/index.html`; it is only ge
 A failing test is never retried automatically. A test confirmed to be flaky (it fails, then passes on a re-run with
 no code change) is quarantined with `@Disabled("FLAKY: <what was seen>, <date>")`, recorded in
 `TESTING_DECISIONS.md`, and then fixed or deleted.
+
+---
+
+## Benchmark
+
+`bench/chart-query.sh` measures the price-chart query (`CryptoSQL.getPriceHistory`) on `Crypto_History`
+with and without an index on `(crypto_id, time_stamp)`, at 1 day, 1 week and 1 month of history
+(181,440 rows per day: every default coin's bot trading at its real rate).
+
+```bash
+bench/chart-query.sh        # about 10-20 minutes; needs Docker or Podman; writes bench/results/<timestamp>.md
+```
+
+Each run starts a fresh `postgres:18` container, loads `createTables.sql`, regenerates the history for each
+configuration, warms up for 5 s, then measures for 30 s with `pgbench` (prepared statements, one client, inside
+the container). The whole benchmark runs 3 times and reports min / median / p95 / max per run, the rows the query
+returned, and the query plans. Results include the machine's CPU, RAM, OS, power state and versions.
+
+Limits: warm cache only (cold-cache numbers need root to drop the OS page cache); client and server share a
+machine; only the busiest coin (LTC) is queried. Run on AC power with nothing else heavy running, and compare
+results only between runs on the same machine.
 
 Test design decisions, the bugs the tests found, and what is deliberately untested are recorded in
 [`TESTING_DECISIONS.md`](TESTING_DECISIONS.md).
