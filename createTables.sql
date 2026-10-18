@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS Notifications CASCADE;
 DROP TABLE IF EXISTS Bots CASCADE;
 DROP TABLE IF EXISTS Crypto_History CASCADE;
 DROP TABLE IF EXISTS Portfolio CASCADE;
@@ -48,6 +49,9 @@ CREATE TABLE Crypto_History (
     PRIMARY KEY (crypto_id, event_id),
     FOREIGN KEY (crypto_id) REFERENCES Cryptocurrency(symbol) ON DELETE CASCADE
 );
+
+-- Serves the price-chart query (CryptoSQL.getPriceHistory); see README "Benchmark"
+CREATE INDEX crypto_history_coin_time ON Crypto_History (crypto_id, time_stamp);
 
 CREATE TABLE Notifications (
     notification_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

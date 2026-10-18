@@ -6,6 +6,9 @@ import com.google.gson.annotations.SerializedName;
  * Represents a cryptocurrency with its market data.
  */
 public class Crypto {
+    /** Highest volatility a coin may have; at 10 its bot trades every 0.5 s. */
+    public static final double MAX_VOLATILITY = 10.0;
+
     @SerializedName("symbol")
     private String symbol;
 

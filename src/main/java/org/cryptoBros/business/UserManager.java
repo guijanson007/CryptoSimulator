@@ -15,7 +15,7 @@ import java.util.concurrent.ScheduledExecutorService;
  * Manages user state, balance operations, and periodic balance increases.
  */
 public class UserManager {
-	private int currentUserId; // -1;
+	private int currentUserId = -1;
 	private final UserPersistence userPersistence;
     private final AtomicPersistence atomicDb;
 
@@ -23,11 +23,21 @@ public class UserManager {
     private ScheduledExecutorService scheduler;
 
     /**
-     * Creates a new UserManager.
+     * Creates a new UserManager backed by the SQL persistence layer.
      */
     public UserManager() {
-        this.userPersistence = new UserSQL();
-        this.atomicDb = new AtomicSQL();
+        this(new UserSQL(), new AtomicSQL());
+    }
+
+    /**
+     * Creates a UserManager with explicit persistence dependencies.
+     *
+     * @param userPersistence the user persistence layer
+     * @param atomicDb        the atomic persistence layer
+     */
+    public UserManager(UserPersistence userPersistence, AtomicPersistence atomicDb) {
+        this.userPersistence = userPersistence;
+        this.atomicDb = atomicDb;
     }
 
 	/** Adds a user to the database.
@@ -95,13 +105,27 @@ public class UserManager {
 	 * @param amount the amount to add
 	 * @throws UserNotFoundException if no user is logged in
 	 * @throws DbConnectionException if the db connection fails
+	 * @throws InvalidAmountException if the amount is zero or negative
 	 */
-	public void addBalance(double amount) throws UserNotFoundException, DbConnectionException {
+	public void addBalance(double amount) throws UserNotFoundException, DbConnectionException, InvalidAmountException {
 		if (currentUserId == -1) {
 			throw new UserNotFoundException();
 		}
+		if (amount <= 0) {
+			throw new InvalidAmountException("Amount must be greater than zero.");
+		}
 		double newBalance = userPersistence.adjustUserBalance(currentUserId, amount);
 		notifyBalanceListeners(newBalance);
+	}
+
+	/** Re-reads the current user's balance and notifies the balance listener.
+	 *  @throws UserNotFoundException if no user is logged in or the user no longer exists
+	 *  @throws DbConnectionException if the db connection fails */
+	public void refreshBalance() throws UserNotFoundException, DbConnectionException {
+		if (currentUserId == -1) {
+			throw new UserNotFoundException();
+		}
+		notifyBalanceListeners(userPersistence.getUserBalance(currentUserId));
 	}
 
 	/** Deducts funds from the current user's balance.

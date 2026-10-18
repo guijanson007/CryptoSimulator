@@ -47,10 +47,27 @@ public class Bot implements Runnable {
      * @param botListener  the callback listener for bot trading actions
      */
     public Bot(long botUserId, String cryptoSymbol, double volatility, BotListener botListener) {
+        this(botUserId, cryptoSymbol, volatility, botListener, new Random());
+    }
+
+    /**
+     * Creates a new Bot with an explicit random source, so callers (and tests) control buy vs. sell.
+     *
+     * @param botUserId    the {@link User} id that was created for this bot
+     * @param cryptoSymbol the {@link Crypto} this bot is responsible for
+     * @param volatility   copied from {@link Crypto} at creation time
+     * @param botListener  the callback listener for bot trading actions
+     * @param rng          the random source deciding between buy and sell
+     */
+    public Bot(long botUserId, String cryptoSymbol, double volatility, BotListener botListener, Random rng) {
+        if (!(volatility > 0 && volatility <= Crypto.MAX_VOLATILITY)) {
+            throw new IllegalArgumentException(
+                    "Volatility must be in (0, " + Crypto.MAX_VOLATILITY + "], was " + volatility);
+        }
         this.botUserId          = botUserId;
         this.cryptoSymbol       = cryptoSymbol;
         this.volatility         = volatility;
-        this.rng                = new Random();
+        this.rng                = rng;
         this.botListener      = botListener;
         this.LOG = Logger.getLogger(this.getClass().getName() + "-" + botUserId);
         this.LOG.setUseParentHandlers(false);
@@ -103,10 +120,15 @@ public class Bot implements Runnable {
      */
     @Override
     public void run() {
-        if (rng.nextBoolean()) {
-            executeBuy();
-        } else {
-            executeSell();
+        try {
+            if (rng.nextBoolean()) {
+                executeBuy();
+            } else {
+                executeSell();
+            }
+        } catch (RuntimeException e) {
+            // Anything escaping run() makes the scheduler silently cancel this bot for good.
+            LOG.log(Level.SEVERE, "Unexpected error in bot for " + cryptoSymbol + "; bot keeps running", e);
         }
     }
 
@@ -136,6 +158,11 @@ public class Bot implements Runnable {
         } catch (DbConnectionException e) {
             LOG.log(Level.WARNING, "Bot sell failed for " + cryptoSymbol + e);
         }
+    }
+
+    /** Returns whether the scheduler is active. Package-private: used by tests in this package. */
+    boolean isRunning() {
+        return scheduler != null && !scheduler.isShutdown();
     }
 
     /**

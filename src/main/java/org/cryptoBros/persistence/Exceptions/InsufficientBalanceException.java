@@ -11,4 +11,13 @@ public class InsufficientBalanceException extends Exception {
         super();
     }
 
+    /**
+     * Creates a new InsufficientBalanceException with the given detail message.
+     *
+     * @param message the detail message
+     */
+    public InsufficientBalanceException(String message) {
+        super(message);
+    }
+
 }

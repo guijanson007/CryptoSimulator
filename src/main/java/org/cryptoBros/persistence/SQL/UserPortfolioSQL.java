@@ -18,6 +18,21 @@ import java.util.List;
  * SQL implementation of UserPortfolioPersistence using PostgreSQL.
  */
 public class UserPortfolioSQL implements UserPortfolioPersistence {
+
+    /**
+     * Upsert used for every purchase. ON CONFLICT targets the composite PK (user_id, crypto_id); on a duplicate
+     * key units accumulate and buy_price becomes the weighted average cost (SET expressions read the pre-update
+     * row). Parameters: user_id, crypto_id, units, buy_price. Shared with AtomicSQL.
+     */
+    static final String BUY_UPSERT = """
+            INSERT INTO Portfolio (user_id, crypto_id, units, buy_price)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT (user_id, crypto_id)
+            DO UPDATE SET units = Portfolio.units + EXCLUDED.units,
+                          buy_price = (Portfolio.units * Portfolio.buy_price + EXCLUDED.units * EXCLUDED.buy_price)
+                                      / (Portfolio.units + EXCLUDED.units)
+            """;
+
     private final DbConnectionSingleton db;
 
     /**
@@ -28,7 +43,7 @@ public class UserPortfolioSQL implements UserPortfolioPersistence {
     }
 
     /**
-     * Records a crypto purchase for a user, inserting a new portfolio row or accumulating units on an existing one.
+     * Records a crypto purchase for a user, inserting a new portfolio row or accumulating units and averaging the buy price on an existing one.
      * Uses ON CONFLICT to upsert; the database trigger raises the crypto price by 1% on insert/update.
      *
      * @param userId       the ID of the user buying the crypto
@@ -50,18 +65,8 @@ public class UserPortfolioSQL implements UserPortfolioPersistence {
             throw new PurchaseNotAddedException("Current price cannot be negative or equal to zero");
         }
 
-        // ON CONFLICT targets the composite PK (user_id, crypto_id).
-        // On a duplicate key we just accumulate units; buy_price remains
-        // unchanged by this statement.
-        String query = """
-                INSERT INTO Portfolio (user_id, crypto_id, units, buy_price)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT (user_id, crypto_id)
-                DO UPDATE SET units = Portfolio.units + EXCLUDED.units
-                """;
-
         try (Connection conn = db.connect();
-             PreparedStatement ps = conn.prepareStatement(query)) {
+             PreparedStatement ps = conn.prepareStatement(BUY_UPSERT)) {
 
             ps.setLong(1, userId);
             ps.setString(2, cryptoSymbol);

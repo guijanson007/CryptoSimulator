@@ -34,14 +34,27 @@ public class CryptoManager implements BotListener {
     private final GraphPriceWorker graphPriceWorker;
 
     /**
-     * Builds a manager with its associated listener
+     * Builds a manager backed by the SQL persistence layer.
      */
     public CryptoManager() {
-        this.cryptoPersistence = new CryptoSQL();
+        this(new CryptoSQL(), new AtomicSQL(), new UserPortfolioSQL(), new UserManager());
+    }
+
+    /**
+     * Builds a manager with explicit dependencies.
+     *
+     * @param cryptoPersistence    the crypto persistence layer
+     * @param atomicDb             the atomic multi-table persistence layer
+     * @param portfolioPersistence the portfolio persistence layer
+     * @param userManager          the user manager used for balance lookups
+     */
+    public CryptoManager(CryptoPersistence cryptoPersistence, AtomicPersistence atomicDb,
+                         UserPortfolioPersistence portfolioPersistence, UserManager userManager) {
+        this.cryptoPersistence = cryptoPersistence;
         this.activeBots = new ConcurrentHashMap<>();
-        this.atomicDb = new AtomicSQL();
-        this.portfolioPersistence = new UserPortfolioSQL();
-        this.userManager = new UserManager();
+        this.atomicDb = atomicDb;
+        this.portfolioPersistence = portfolioPersistence;
+        this.userManager = userManager;
         this.graphPriceWorker = new GraphPriceWorker(cryptoPersistence);
     }
 
@@ -50,17 +63,30 @@ public class CryptoManager implements BotListener {
      * @param newCrypto the crypto to be created
      * @throws DbConnectionException if the db connection fails at any point during this process
      * @throws BotGenerationException if the bot could not be generated
-     * @throws CryptoNotAddedException if the crypto could not be added to the db
+     * @throws CryptoNotAddedException if the crypto is invalid or could not be added to the db
      */
     public void createCrypto(Crypto newCrypto)
             throws DbConnectionException, BotGenerationException, CryptoNotAddedException {
-
+        validate(newCrypto);
         long botUserId = atomicDb.createCryptoWithBot(newCrypto);
 
         // DB succeeded: start in-memory bot
         Bot bot = new Bot(botUserId, newCrypto.getSymbol(), newCrypto.getVolatility(), this);
         activeBots.put(newCrypto.getSymbol(), bot);
         bot.start();
+    }
+
+    private static void validate(Crypto crypto) throws CryptoNotAddedException {
+        if (crypto.getSymbol() == null || crypto.getSymbol().isBlank()
+                || crypto.getName() == null || crypto.getName().isBlank()) {
+            throw new CryptoNotAddedException("A crypto needs a symbol and a name.");
+        }
+        if (!(crypto.getCurrentPrice() > 0) || !(crypto.getInitialPrice() > 0)) {
+            throw new CryptoNotAddedException("Prices must be greater than zero.");
+        }
+        if (!(crypto.getVolatility() > 0 && crypto.getVolatility() <= Crypto.MAX_VOLATILITY)) {
+            throw new CryptoNotAddedException("Volatility must be greater than 0 and at most " + Crypto.MAX_VOLATILITY + ".");
+        }
     }
 
     /**
@@ -122,6 +148,9 @@ public class CryptoManager implements BotListener {
             SaleNotAddedException,
             CryptoNotFoundException
     {
+        if (units <= 0) {
+            throw new SaleNotAddedException("Units to sell must be greater than zero.");
+        }
         double priceBeforeSell = cryptoPersistence.getCurrentPrice(symbol);
         double proceeds = priceBeforeSell * units;
         portfolioPersistence.sellCrypto(userId, symbol, units);
@@ -132,7 +161,8 @@ public class CryptoManager implements BotListener {
 
 
     /**
-     * Purchases a crypto, orchestrating business logic related to it and returns the total to be removed
+     * Purchases a crypto atomically: the balance check, the trade and the payment happen in one
+     * database transaction at the locked price. Returns the total cost charged.
      * @param userId the user buying the crypto
      * @param symbol the crypto to be bought
      * @param units the amount of crypto being bought
@@ -152,22 +182,8 @@ public class CryptoManager implements BotListener {
             throw new PurchaseNotAddedException("Units to purchase must be greater than zero.");
         }
 
-        // fetch crypto's current price
-        double currentPrice = cryptoPersistence.getCurrentPrice(symbol);
-
-        // fetch user balance
-        double userBalance = userManager.getUserBalance(userId);
-        double totalCost = currentPrice * units;
-
-        if (totalCost > userBalance) {
-            throw new PurchaseNotAddedException("You don't have enough money to purchase this crypto.");
-        }
-
-        // if price found and user has enough balance -> execute purchase
-        portfolioPersistence.buyCrypto(userId, symbol, currentPrice, units);
-        Crypto updatedCrypto = cryptoPersistence.getCrypto(symbol);
-        notifyListener(updatedCrypto);
-
+        double totalCost = atomicDb.purchaseAtomically(userId, symbol, units);
+        notifyListener(cryptoPersistence.getCrypto(symbol));
         return totalCost;
     }
 

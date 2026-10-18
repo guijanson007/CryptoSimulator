@@ -7,6 +7,8 @@ import org.cryptoBros.persistence.Exceptions.BotGenerationException;
 import org.cryptoBros.persistence.Exceptions.CryptoNotAddedException;
 import org.cryptoBros.persistence.Exceptions.CryptoNotFoundException;
 import org.cryptoBros.persistence.Exceptions.DbConnectionException;
+import org.cryptoBros.persistence.Exceptions.InsufficientBalanceException;
+import org.cryptoBros.persistence.Exceptions.UserNotFoundException;
 
 import java.io.FileNotFoundException;
 import java.util.List;
@@ -60,5 +62,20 @@ public interface AtomicPersistence {
      */
     List<String> popNotifications(long userId)
         throws DbConnectionException;
+
+    /**
+     * Buys a crypto for a user in one transaction: locks the coin and user rows, checks the balance,
+     * records the purchase at the locked price and deducts its cost.
+     * @param userId the buying user
+     * @param symbol the crypto to buy
+     * @param units the number of units to buy; callers must ensure it is positive
+     * @return the total cost charged (locked price × units)
+     * @throws DbConnectionException if the db connection or transaction fails
+     * @throws CryptoNotFoundException if the crypto does not exist
+     * @throws UserNotFoundException if the user does not exist
+     * @throws InsufficientBalanceException if the user cannot afford the purchase
+     */
+    double purchaseAtomically(long userId, String symbol, double units)
+            throws DbConnectionException, CryptoNotFoundException, UserNotFoundException, InsufficientBalanceException;
 
 }
