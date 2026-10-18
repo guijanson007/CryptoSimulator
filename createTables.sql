@@ -50,6 +50,9 @@ CREATE TABLE Crypto_History (
     FOREIGN KEY (crypto_id) REFERENCES Cryptocurrency(symbol) ON DELETE CASCADE
 );
 
+-- Serves the price-chart query (CryptoSQL.getPriceHistory); see README "Benchmark"
+CREATE INDEX crypto_history_coin_time ON Crypto_History (crypto_id, time_stamp);
+
 CREATE TABLE Notifications (
     notification_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id BIGINT NOT NULL,
