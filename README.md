@@ -142,7 +142,7 @@ with and without an index on `(crypto_id, time_stamp)`, at 1 day, 1 week and 1 m
 (181,440 rows per day: every default coin's bot trading at its real rate).
 
 ```bash
-bench/chart-query.sh        # about 10-20 minutes; needs Docker or Podman; writes bench/results/<timestamp>.md
+bench/chart-query.sh        # about 20-25 minutes (22 min measured, see bench/results/); needs Docker or Podman
 ```
 
 Each run starts a fresh `postgres:18` container, loads `createTables.sql`, regenerates the history for each
