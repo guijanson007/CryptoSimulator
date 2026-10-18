@@ -738,3 +738,30 @@ full run took 22 min.
 re-running the schema script (no migration).
 
 **Objections:** None.
+
+## D54 — Phase 8 review (2026-10-18)
+
+**State:** 47 unit + 43 integration tests (with PriceHistoryIT), green locally and on CI (ubuntu-24.04, 52 s on first run).
+13 suspected bugs found by tests: 11 fixed (#1–4, #6–11, #13; #1/#2 verified by design, the rest red-then-green),
+#5 not reproduced, #12 noted. Two more noted during review: #14 (TIMESTAMP without zone read in the JVM's zone,
+chart shifted when DB and JVM zones differ) and duplicate timestamps collapsing in `getPriceHistory`'s map.
+
+**Coverage (JaCoCo, unit + integration, before PriceHistoryIT):** persistence.SQL 68.2% lines / 69.3% branches,
+business 61.2% / 65.8%, business.Workers 73.6% / 62.5%; total 22.5% / 29.9% (UI deliberately untested, D8/D10).
+Coverage counts executed lines, not asserted behavior; failure capability shown only by red-first runs and one
+mutation check (D30). Weakest: CryptoSQL 37% (54%, 38/71, after PriceHistoryIT), CryptoManager 44%, UserSQL 47%,
+UserManager 52%.
+
+**Not caught by these tests:** real concurrency (bug #2 fixed by design), UI wiring and EDT exceptions, schema
+changes on existing databases (no migration), performance regressions (benchmark is manual), non-Linux platforms.
+
+**Flakiness:** none observed in ~35 local and 2 CI runs; candidates #47 and container startup (policy D46).
+
+**Maintenance burden:** 1,498 test lines (~19% of 7,723 main), 5 fakes tied to 5 interfaces, 3 test seams in
+production code, pinned tool versions, per-machine Docker/Podman setup, this log.
+
+**Open items:** branch protection (manual), UI click-through of a purchase, bug #12, dead code (`deductBalance`,
+`CryptoManager.userManager`), unverified D45 timeout assumptions, unmeasured index write cost, issue #14,
+upstream CI (D44 B), `CLAUDE.md` commit decision.
+
+**Objections:** None.
